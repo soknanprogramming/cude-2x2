@@ -55,6 +55,7 @@ export class CubeGame extends LitElement {
     #canvas-container {
       width: 100%;
       height: 100%;
+      outline: none;
     }
     .ui {
       position: absolute;
@@ -158,7 +159,7 @@ export class CubeGame extends LitElement {
   firstUpdated() {
     this.initThree();
     this.createCube();
-    this.animate();
+    this.renderLoop();
     
     const el = this.renderer.domElement;
     el.addEventListener('mousedown', this.onPointerDown.bind(this));
@@ -255,8 +256,8 @@ export class CubeGame extends LitElement {
     }
   }
 
-  private animate() {
-    requestAnimationFrame(this.animate.bind(this));
+  private renderLoop() {
+    requestAnimationFrame(this.renderLoop.bind(this));
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
@@ -378,7 +379,7 @@ export class CubeGame extends LitElement {
   }
 
   private async animateRotation(axis: 'x' | 'y' | 'z', layer: number, clockwise: boolean) {
-    if (this.isLayerDragging || this.scrambling) return;
+    if (this.isLayerDragging) return;
     this.isLayerDragging = true;
     
     const pivot = new THREE.Object3D();
@@ -492,8 +493,8 @@ export class CubeGame extends LitElement {
       ` : ''}
 
       <div class="controls">
-        <button @click=${this.scramble}>SCRAMBLE</button>
-        <button @click=${this.resetTimer}>RESET</button>
+        <button @click=${() => this.scramble()}>SCRAMBLE</button>
+        <button @click=${() => this.resetTimer()}>RESET</button>
         <button @click=${() => this.showMenu = true}>HELP</button>
       </div>
     `;
