@@ -46,11 +46,12 @@ export class CubeGame extends LitElement {
       width: 100%;
       height: 600px;
       position: relative;
-      background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0a 100%);
+      background: var(--game-bg, radial-gradient(circle at center, #1a1a2e 0%, #0a0a0a 100%));
       border-radius: 16px;
       overflow: hidden;
       touch-action: none;
       font-family: system-ui, -apple-system, sans-serif;
+      transition: background 0.3s;
     }
     #canvas-container {
       width: 100%;
@@ -62,7 +63,7 @@ export class CubeGame extends LitElement {
       top: 30px;
       left: 30px;
       pointer-events: none;
-      color: white;
+      color: var(--text-h);
       z-index: 10;
     }
     .controls {
@@ -77,9 +78,9 @@ export class CubeGame extends LitElement {
     button {
       pointer-events: auto;
       padding: 10px 24px;
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--bg);
+      color: var(--accent);
+      border: 2px solid var(--accent-border);
       border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
@@ -87,25 +88,28 @@ export class CubeGame extends LitElement {
       transition: all 0.2s;
     }
     button:hover {
-      background: #aa3bff;
-      border-color: #aa3bff;
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
     }
     .timer {
       font-size: 42px;
       font-weight: 200;
       margin-bottom: 5px;
+      color: var(--accent);
     }
     
     .menu-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.9);
+      background: var(--bg);
+      opacity: 0.95;
       backdrop-filter: blur(12px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 100;
-      color: white;
+      color: var(--text);
       overflow-y: auto;
     }
     .menu-content {
@@ -116,7 +120,7 @@ export class CubeGame extends LitElement {
     .menu-content h2 {
       font-size: 32px;
       margin-bottom: 20px;
-      color: #aa3bff;
+      color: var(--accent);
     }
     .instruction-grid {
       display: grid;
@@ -126,12 +130,12 @@ export class CubeGame extends LitElement {
       margin-bottom: 30px;
     }
     .instruction-section h3 {
-      color: #aa3bff;
+      color: var(--accent);
       font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 10px;
-      border-bottom: 1px solid rgba(170, 59, 255, 0.3);
+      border-bottom: 1px solid var(--accent-border);
       padding-bottom: 5px;
     }
     .key-map {
@@ -141,7 +145,8 @@ export class CubeGame extends LitElement {
       font-size: 14px;
     }
     .key-map b {
-      background: rgba(255,255,255,0.15);
+      background: var(--accent-bg);
+      color: var(--accent);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: monospace;
@@ -150,7 +155,8 @@ export class CubeGame extends LitElement {
       margin-top: 20px;
       width: 100%;
       padding: 15px;
-      background: #aa3bff;
+      background: var(--accent);
+      color: white;
       border: none;
       font-size: 18px;
     }
@@ -180,7 +186,8 @@ export class CubeGame extends LitElement {
   }
 
   private handleKeyDown(e: KeyboardEvent) {
-    if (this.scrambling || this.isLayerDragging) return;
+    const isPaused = this.time > 0 && !this.isRunning;
+    if (this.scrambling || this.isLayerDragging || isPaused) return;
 
     // Left Hand - Cube Control
     const key = e.key.toLowerCase();
@@ -446,6 +453,18 @@ export class CubeGame extends LitElement {
     this.renderer.setSize(width, height);
   }
 
+  private togglePause() {
+    if (this.scrambling || (this.time === 0 && !this.isRunning)) return;
+    
+    if (this.isRunning) {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        this.isRunning = false;
+    } else {
+        this.isRunning = true;
+        this.timerInterval = window.setInterval(() => this.time += 100, 100);
+    }
+  }
+
   private startTimer() {
     if (this.isRunning) return;
     this.isRunning = true;
@@ -458,13 +477,40 @@ export class CubeGame extends LitElement {
     this.time = 0;
   }
 
+  private async resetCube() {
+    if (this.scrambling || this.isLayerDragging) return;
+    this.resetTimer();
+    
+    // Reset positions and rotations of all cubies
+    this.cubies.forEach((cubie, index) => {
+        // Calculate original coordinates (0-1 range)
+        const z = index % 2;
+        const y = Math.floor(index / 2) % 2;
+        const x = Math.floor(index / 4);
+        
+        cubie.position.set(x - 0.5, y - 0.5, z - 0.5);
+        cubie.quaternion.set(0, 0, 0, 1);
+    });
+  }
+
   render() {
+    const isPaused = this.time > 0 && !this.isRunning;
+
     return html`
       <div id="canvas-container" tabindex="0"></div>
       
       <div class="ui">
-        <div class="timer">${(this.time / 1000).toFixed(1)}s</div>
+        <div class="timer">${(this.time / 1000).toFixed(1)}s ${isPaused ? '(PAUSED)' : ''}</div>
       </div>
+
+      ${isPaused ? html`
+        <div class="menu-overlay" style="background: rgba(0,0,0,0.4)">
+          <div class="menu-content">
+            <h2 style="color: white; font-size: 48px;">PAUSED</h2>
+            <button class="close-menu" @click=${() => this.togglePause()}>RESUME</button>
+          </div>
+        </div>
+      ` : ''}
 
       ${this.showMenu ? html`
         <div class="menu-overlay">
@@ -500,7 +546,11 @@ export class CubeGame extends LitElement {
 
       <div class="controls">
         <button @click=${() => this.scramble()}>SCRAMBLE</button>
-        <button @click=${() => this.resetTimer()}>RESET</button>
+        <button @click=${() => this.togglePause()} ?disabled=${this.time === 0}>
+          ${this.isRunning ? 'PAUSE' : 'RESUME'}
+        </button>
+        <button @click=${() => this.resetCube()}>NEW CUBE</button>
+        <button @click=${() => this.resetTimer()}>RESET TIMER</button>
         <button @click=${() => this.showMenu = true}>HELP</button>
       </div>
     `;
