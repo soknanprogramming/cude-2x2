@@ -49,128 +49,179 @@ export class CubeGame extends LitElement {
     :host {
       display: block;
       width: 100%;
-      height: 600px;
+      height: 100%;
       position: relative;
       background: var(--game-bg, radial-gradient(circle at center, #1a1a2e 0%, #0a0a0a 100%));
-      border-radius: 16px;
       overflow: hidden;
       touch-action: none;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       transition: background 0.3s;
     }
     #canvas-container {
       width: 100%;
       height: 100%;
       outline: none;
+      cursor: grab;
     }
-    .ui {
-      position: absolute;
-      top: 30px;
-      left: 30px;
-      pointer-events: none;
-      color: var(--text-h);
-      z-index: 10;
+    #canvas-container:active {
+      cursor: grabbing;
     }
-    .controls {
+
+    .ui-top {
       position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 1.5rem;
+      left: 1.5rem;
+      right: 1.5rem;
       display: flex;
-      gap: 15px;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
       z-index: 10;
     }
-    button {
+
+    .stopwatch {
+      background: var(--card-bg);
+      padding: 0.5rem 1.25rem;
+      border-radius: 100px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       pointer-events: auto;
-      padding: 10px 24px;
-      background: var(--bg);
+    }
+
+    .stopwatch-icon {
       color: var(--accent);
-      border: 2px solid var(--accent-border);
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      backdrop-filter: blur(10px);
-      transition: all 0.2s;
+      width: 18px;
+      height: 18px;
     }
-    button:hover {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+
     .timer {
-      font-size: 42px;
-      font-weight: 200;
-      margin-bottom: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-h);
+      min-width: 70px;
+    }
+
+    .timer.running { color: var(--accent); }
+
+    .ui-bottom {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .control-group {
+      background: var(--card-bg);
+      padding: 0.4rem;
+      border-radius: 100px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      gap: 0.4rem;
+      pointer-events: auto;
+    }
+
+    button {
+      background: transparent;
+      border: none;
+      padding: 0.6rem 1rem;
+      color: var(--text);
+      font-weight: 600;
+      border-radius: 100px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      font-size: 0.875rem;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-bg);
       color: var(--accent);
     }
-    
-    .menu-overlay {
+
+    button.primary { background: var(--accent); color: white; }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); color: white; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button svg { width: 16px; height: 16px; }
+
+    .overlay {
       position: absolute;
       inset: 0;
-      background: var(--bg);
-      opacity: 0.95;
-      backdrop-filter: blur(12px);
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 100;
-      color: var(--text);
-      overflow-y: auto;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
     }
-    .menu-content {
-      max-width: 600px;
-      padding: 40px;
+
+    .overlay.active { opacity: 1; pointer-events: auto; }
+
+    .modal {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 450px;
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: var(--shadow);
       text-align: center;
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
     }
-    .menu-content h2 {
-      font-size: 32px;
-      margin-bottom: 20px;
-      color: var(--accent);
-    }
-    .instruction-grid {
+
+    .overlay.active .modal { transform: translateY(0); }
+    .modal h2 { margin-top: 0; font-size: 1.75rem; color: var(--text-h); margin-bottom: 1rem; }
+    .modal p { color: var(--text); line-height: 1.5; margin-bottom: 1.5rem; font-size: 0.95rem; }
+
+    .shortcut-list {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 0.75rem;
+      margin: 1rem 0;
       text-align: left;
-      margin-bottom: 30px;
     }
-    .instruction-section h3 {
-      color: var(--accent);
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 10px;
-      border-bottom: 1px solid var(--accent-border);
-      padding-bottom: 5px;
-    }
-    .key-map {
+
+    .shortcut-item {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 14px;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.6rem;
+      background: var(--bg);
+      border-radius: 8px;
     }
-    .key-map b {
-      background: var(--accent-bg);
-      color: var(--accent);
-      padding: 2px 6px;
+
+    .key {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
       border-radius: 4px;
       font-family: monospace;
+      font-weight: 700;
+      color: var(--accent);
     }
-    .close-menu {
-      margin-top: 20px;
-      width: 100%;
-      padding: 15px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      font-size: 18px;
-    }
-    .solved-overlay {
-      background: rgba(0, 200, 0, 0.2) !important;
+
+    .btn-full { width: 100%; justify-content: center; margin-top: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .control-group { border-radius: 16px; padding: 0.5rem; }
+      button { padding: 0.4rem 0.75rem; font-size: 0.75rem; }
+      button span { display: none; } /* Hide text on mobile icons only */
+      button svg { width: 18px; height: 18px; margin: 0; }
     }
   `;
 
@@ -201,8 +252,9 @@ export class CubeGame extends LitElement {
     const isPaused = this.time > 0 && !this.isRunning && !this.solved;
     if (this.scrambling || this.isLayerDragging || isPaused) return;
 
-    // Left Hand - Cube Control
     const key = e.key.toLowerCase();
+    
+    // Core rotations
     if (key === 'q') this.animateRotation('x', 0, true);
     if (key === 'a') this.animateRotation('x', 0, false);
     if (key === 'w') this.animateRotation('y', 1, true);
@@ -212,14 +264,17 @@ export class CubeGame extends LitElement {
     if (key === 'r') this.animateRotation('x', 1, true);
     if (key === 'f') this.animateRotation('x', 1, false);
 
-    // Right Hand - Game Shortcuts
+    // Shortcuts
     if (e.code === 'Space') { e.preventDefault(); this.scramble(); }
     if (key === 'n') this.resetCube();
     if (key === 'p') this.togglePause();
     if (key === 'g') this.solved = false;
     if (key === 'backspace' || key === 'delete') this.resetTimer();
     if (key === 'h') this.showMenu = !this.showMenu;
-    if (key === 'escape') this.showMenu = false;
+    if (key === 'escape') {
+      this.showMenu = false;
+      if (this.solved) this.solved = false;
+    }
   }
 
   private initThree() {
@@ -245,7 +300,6 @@ export class CubeGame extends LitElement {
   }
 
   private createCube() {
-    // High-Contrast Professional Palette
     const colors = [0x009b48, 0x0045ad, 0xffffff, 0xffd500, 0xff5800, 0xb71234];
     const blackMaterial = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.8 });
 
@@ -281,12 +335,12 @@ export class CubeGame extends LitElement {
 
   private renderLoop() {
     requestAnimationFrame(this.renderLoop.bind(this));
-    this.controls.update();
-    this.renderer.render(this.scene, this.camera);
+    if (this.controls) this.controls.update();
+    if (this.renderer) this.renderer.render(this.scene, this.camera);
   }
 
   private onPointerDown(e: MouseEvent) {
-    if (this.scrambling || this.isLayerDragging || this.showMenu) return;
+    if (this.scrambling || this.isLayerDragging || this.showMenu || this.solved) return;
     
     const rect = this.canvasContainer.getBoundingClientRect();
     this.startMousePos.set(
@@ -381,7 +435,6 @@ export class CubeGame extends LitElement {
 
   private isSolved(): boolean {
     if (this.cubies.length === 0) return false;
-    
     const raycaster = new THREE.Raycaster();
     const faces = [
       { dir: new THREE.Vector3(1, 0, 0) },
@@ -395,21 +448,16 @@ export class CubeGame extends LitElement {
     for (const face of faces) {
       const colors = new Set<number>();
       const offsets = [-0.5, 0.5];
-      
       for (const ox of offsets) {
         for (const oy of offsets) {
           const rayOrigin = face.dir.clone().multiplyScalar(2);
           if (face.dir.x !== 0) { rayOrigin.y += ox; rayOrigin.z += oy; }
           else if (face.dir.y !== 0) { rayOrigin.x += ox; rayOrigin.z += oy; }
           else { rayOrigin.x += ox; rayOrigin.y += oy; }
-          
           raycaster.set(rayOrigin, face.dir.clone().negate());
           const intersects = raycaster.intersectObjects(this.scene.children, true);
-          
           const sticker = intersects.find(i => i.object instanceof THREE.Mesh && (i.object.geometry as THREE.BufferGeometry).type === 'PlaneGeometry');
-          if (sticker) {
-            colors.add(((sticker.object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.getHex());
-          }
+          if (sticker) colors.add(((sticker.object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.getHex());
         }
       }
       if (colors.size !== 1) return false;
@@ -422,8 +470,6 @@ export class CubeGame extends LitElement {
         this.solved = true;
         if (this.timerInterval) clearInterval(this.timerInterval);
         this.isRunning = false;
-    } else {
-        this.solved = false;
     }
   }
 
@@ -457,7 +503,6 @@ export class CubeGame extends LitElement {
   private async animateRotation(axis: 'x' | 'y' | 'z', layer: number, clockwise: boolean) {
     if (this.isLayerDragging) return;
     this.isLayerDragging = true;
-    
     const pivot = new THREE.Object3D();
     this.scene.add(pivot);
     const layerCubies = this.cubies.filter(c => {
@@ -467,7 +512,6 @@ export class CubeGame extends LitElement {
         return Math.abs(p.z - (layer - 0.5)) < 0.1;
     });
     layerCubies.forEach(c => pivot.attach(c));
-    
     const target = (clockwise ? -1 : 1) * Math.PI / 2;
     const start = performance.now();
     await new Promise(r => {
@@ -505,16 +549,13 @@ export class CubeGame extends LitElement {
     this.resetTimer();
     const axes: ('x' | 'y' | 'z')[] = ['x', 'y', 'z'];
     for (let i = 0; i < 10; i++) {
-        await this.animateRotation(
-            axes[Math.floor(Math.random() * 3)],
-            Math.floor(Math.random() * 2),
-            Math.random() > 0.5
-        );
+        await this.animateRotation(axes[Math.floor(Math.random() * 3)], Math.floor(Math.random() * 2), Math.random() > 0.5);
     }
     this.scrambling = false;
   }
 
   private onWindowResize() {
+    if (!this.canvasContainer) return;
     const width = this.canvasContainer.clientWidth;
     const height = this.canvasContainer.clientHeight;
     this.camera.aspect = width / height;
@@ -524,7 +565,6 @@ export class CubeGame extends LitElement {
 
   private togglePause() {
     if (this.scrambling || (this.time === 0 && !this.isRunning) || this.solved) return;
-    
     if (this.isRunning) {
         if (this.timerInterval) clearInterval(this.timerInterval);
         this.isRunning = false;
@@ -550,7 +590,6 @@ export class CubeGame extends LitElement {
     if (this.scrambling || this.isLayerDragging) return;
     this.resetTimer();
     this.solved = false;
-    
     this.cubies.forEach((cubie, index) => {
         const z = index % 2;
         const y = Math.floor(index / 2) % 2;
@@ -566,76 +605,78 @@ export class CubeGame extends LitElement {
     return html`
       <div id="canvas-container" tabindex="0"></div>
       
-      <div class="ui">
-        <div class="timer">
-          ${(this.time / 1000).toFixed(1)}s 
-          ${isPaused ? '(PAUSED)' : ''} 
-          ${this.solved ? '(SOLVED!)' : ''}
+      <div class="ui-top">
+        <div class="stopwatch">
+          <svg class="stopwatch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="timer ${this.isRunning ? 'running' : ''}">${(this.time / 1000).toFixed(1)}s</div>
         </div>
       </div>
 
-      ${isPaused ? html`
-        <div class="menu-overlay" style="background: rgba(0,0,0,0.4)">
-          <div class="menu-content">
-            <h2 style="color: white; font-size: 48px;">PAUSED</h2>
-            <button class="close-menu" @click=${() => this.togglePause()}>RESUME</button>
-          </div>
+      <!-- Overlays -->
+      <div class="overlay ${isPaused ? 'active' : ''}">
+        <div class="modal">
+          <h2>Game Paused</h2>
+          <p>The timer is currently suspended. Resume whenever you're ready to continue solving.</p>
+          <button class="primary btn-full" @click=${() => this.togglePause()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            RESUME SESSION
+          </button>
         </div>
-      ` : ''}
+      </div>
 
-      ${this.solved ? html`
-        <div class="menu-overlay solved-overlay">
-          <div class="menu-content">
-            <h2 style="color: #4ade80; font-size: 48px;">SOLVED!</h2>
-            <p style="font-size: 24px; margin-bottom: 20px;">Time: ${(this.time / 1000).toFixed(1)}s</p>
-            <button class="close-menu" style="background: #4ade80" @click=${() => this.scramble()}>SCRAMBLE AGAIN</button>
-            <button class="close-menu" style="margin-top: 10px;" @click=${() => this.solved = false}>DISMISS</button>
+      <div class="overlay ${this.solved ? 'active' : ''}">
+        <div class="modal">
+          <h2 style="color: #4ade80">Solved!</h2>
+          <p>Fantastic job! You've successfully restored the cube to its original state.</p>
+          <div style="font-size: 2.5rem; font-weight: 800; color: var(--text-h); margin-bottom: 1.5rem;">
+            ${(this.time / 1000).toFixed(1)}<span style="font-size: 1.25rem; color: var(--text); font-weight: 400">s</span>
           </div>
+          <button class="primary btn-full" @click=${() => this.scramble()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            SCRAMBLE AGAIN
+          </button>
+          <button class="btn-full" @click=${() => this.solved = false}>CLOSE OVERLAY</button>
         </div>
-      ` : ''}
+      </div>
 
-      ${this.showMenu ? html`
-        <div class="menu-overlay">
-          <div class="menu-content">
-            <h2>CONTROLS</h2>
-            
-            <div class="instruction-grid">
-              <div class="instruction-section">
-                <h3>Left Hand (Rotations)</h3>
-                <div class="key-map"><span>Left Layer</span> <b>Q / A</b></div>
-                <div class="key-map"><span>Up Layer</span> <b>W / S</b></div>
-                <div class="key-map"><span>Front Layer</span> <b>E / D</b></div>
-                <div class="key-map"><span>Right Layer</span> <b>R / F</b></div>
-              </div>
-              
-              <div class="instruction-section">
-                <h3>Right Hand (Shortcuts)</h3>
-                <div class="key-map"><span>Scramble</span> <b>SPACE</b></div>
-                <div class="key-map"><span>New Cube</span> <b>N</b></div>
-                <div class="key-map"><span>Pause/Resume</span> <b>P</b></div>
-                <div class="key-map"><span>Reset Timer</span> <b>DEL</b></div>
-                <div class="key-map"><span>Dismiss Solved</span> <b>G</b></div>
-                <div class="key-map"><span>Toggle Help</span> <b>H</b></div>
-              </div>
-            </div>
-
-            <div class="instruction-section" style="text-align: center; opacity: 0.8; margin-top: 20px;">
-              <p>You can also drag cube faces directly for tactile control.</p>
-            </div>
-
-            <button class="close-menu" @click=${() => this.showMenu = false}>GOT IT!</button>
+      <div class="overlay ${this.showMenu ? 'active' : ''}">
+        <div class="modal" style="max-width: 550px">
+          <h2>Game Controls</h2>
+          <div class="shortcut-list">
+            <div class="shortcut-item"><span>Left Layer</span> <span class="key">Q / A</span></div>
+            <div class="shortcut-item"><span>Up Layer</span> <span class="key">W / S</span></div>
+            <div class="shortcut-item"><span>Front Layer</span> <span class="key">E / D</span></div>
+            <div class="shortcut-item"><span>Right Layer</span> <span class="key">R / F</span></div>
+            <div class="shortcut-item"><span>Scramble</span> <span class="key">SPACE</span></div>
+            <div class="shortcut-item"><span>New Cube</span> <span class="key">N</span></div>
+            <div class="shortcut-item"><span>Pause</span> <span class="key">P</span></div>
+            <div class="shortcut-item"><span>Help</span> <span class="key">H</span></div>
           </div>
+          <p style="margin-top: 1rem; font-size: 0.85rem">Drag directly on the cube to rotate layers, or drag the background to orbit the view.</p>
+          <button class="primary btn-full" @click=${() => this.showMenu = false}>GOT IT!</button>
         </div>
-      ` : ''}
+      </div>
 
-      <div class="controls">
-        <button @click=${() => this.scramble()} ?disabled=${this.scrambling}>SCRAMBLE</button>
-        <button @click=${() => this.togglePause()} ?disabled=${this.time === 0 || this.solved}>
-          ${this.isRunning ? 'PAUSE' : 'RESUME'}
-        </button>
-        <button @click=${() => this.resetCube()}>NEW CUBE</button>
-        <button @click=${() => this.resetTimer()}>RESET TIMER</button>
-        <button @click=${() => this.showMenu = true}>HELP</button>
+      <div class="ui-bottom">
+        <div class="control-group">
+          <button class="primary" @click=${() => this.scramble()} ?disabled=${this.scrambling}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            <span>SCRAMBLE</span>
+          </button>
+          <button @click=${() => this.togglePause()} ?disabled=${this.time === 0 || this.solved}>
+            ${this.isRunning ? 
+              html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> <span>PAUSE</span>` : 
+              html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> <span>RESUME</span>`}
+          </button>
+          <button @click=${() => this.resetCube()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/></svg>
+            <span>NEW CUBE</span>
+          </button>
+          <button @click=${() => this.showMenu = true}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>HELP</span>
+          </button>
+        </div>
       </div>
     `;
   }
