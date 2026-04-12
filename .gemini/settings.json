@@ -1,0 +1,18 @@
+{
+  "ui": {
+    "footer": {
+      "hideContextPercentage": false,
+      "hideModelPercentage": false,
+      "hideSandboxStatus": true,
+      "hideModelInfo": false
+    },
+    "showModelInfoChat": true,
+    "showStatusInTitle": true,
+    "showMemoryUsage": true
+  },
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "chrome-devtools-mcp"
+    }
+  }
+}
