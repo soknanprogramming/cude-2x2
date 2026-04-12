@@ -216,15 +216,17 @@ export class CubeGame extends LitElement {
     this.controls.enableDamping = true;
     this.controls.rotateSpeed = 0.5;
 
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const light = new THREE.DirectionalLight(0xffffff, 0.8);
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const light = new THREE.DirectionalLight(0xffffff, 0.7);
     light.position.set(10, 20, 15);
     this.scene.add(light);
   }
 
   private createCube() {
+    // High-Contrast Professional Palette:
+    // 0: Deep Green, 1: Royal Blue, 2: Pure White, 3: Golden Yellow, 4: Bright Orange, 5: Crimson Red
     const colors = [0x009b48, 0x0045ad, 0xffffff, 0xffd500, 0xff5800, 0xb71234];
-    const blackMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3 });
+    const blackMaterial = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.8 });
 
     for (let x = 0; x < 2; x++) {
       for (let y = 0; y < 2; y++) {
@@ -235,8 +237,12 @@ export class CubeGame extends LitElement {
 
           colors.forEach((color, i) => {
             const sticker = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.82, 0.82),
-                new THREE.MeshStandardMaterial({ color, roughness: 0.2 })
+                new THREE.PlaneGeometry(0.78, 0.78), // Slightly smaller for thicker borders
+                new THREE.MeshStandardMaterial({ 
+                  color, 
+                  roughness: 1.0, // Fully matte to eliminate glare
+                  metalness: 0.0 
+                })
             );
             const offset = 0.465;
             if (i === 0) { sticker.position.x = offset; sticker.rotation.y = Math.PI/2; }
