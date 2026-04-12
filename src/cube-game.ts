@@ -17,6 +17,12 @@ export class CubeGame extends LitElement {
   @state()
   private showMenu = false;
 
+  @state()
+  private scrambling = false;
+
+  @state()
+  private solved = false;
+
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
@@ -38,7 +44,6 @@ export class CubeGame extends LitElement {
   private currentDragAngle = 0;
   private axisName: 'x' | 'y' | 'z' = 'x';
   private layerIndex = 0;
-  private scrambling = false;
 
   static styles = css`
     :host {
@@ -91,6 +96,10 @@ export class CubeGame extends LitElement {
       background: var(--accent);
       color: white;
       border-color: var(--accent);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     .timer {
       font-size: 42px;
@@ -160,6 +169,9 @@ export class CubeGame extends LitElement {
       border: none;
       font-size: 18px;
     }
+    .solved-overlay {
+      background: rgba(0, 200, 0, 0.2) !important;
+    }
   `;
 
   firstUpdated() {
@@ -186,7 +198,7 @@ export class CubeGame extends LitElement {
   }
 
   private handleKeyDown(e: KeyboardEvent) {
-    const isPaused = this.time > 0 && !this.isRunning;
+    const isPaused = this.time > 0 && !this.isRunning && !this.solved;
     if (this.scrambling || this.isLayerDragging || isPaused) return;
 
     // Left Hand - Cube Control
@@ -230,8 +242,7 @@ export class CubeGame extends LitElement {
   }
 
   private createCube() {
-    // High-Contrast Professional Palette:
-    // 0: Deep Green, 1: Royal Blue, 2: Pure White, 3: Golden Yellow, 4: Bright Orange, 5: Crimson Red
+    // High-Contrast Professional Palette
     const colors = [0x009b48, 0x0045ad, 0xffffff, 0xffd500, 0xff5800, 0xb71234];
     const blackMaterial = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.8 });
 
@@ -244,12 +255,8 @@ export class CubeGame extends LitElement {
 
           colors.forEach((color, i) => {
             const sticker = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.78, 0.78), // Slightly smaller for thicker borders
-                new THREE.MeshStandardMaterial({ 
-                  color, 
-                  roughness: 1.0, // Fully matte to eliminate glare
-                  metalness: 0.0 
-                })
+                new THREE.PlaneGeometry(0.78, 0.78),
+                new THREE.MeshStandardMaterial({ color, roughness: 1.0, metalness: 0.0 })
             );
             const offset = 0.465;
             if (i === 0) { sticker.position.x = offset; sticker.rotation.y = Math.PI/2; }
@@ -369,6 +376,54 @@ export class CubeGame extends LitElement {
     if (this.isLayerDragging) this.snapLayer();
   }
 
+  private isSolved(): boolean {
+    if (this.cubies.length === 0) return false;
+    
+    const raycaster = new THREE.Raycaster();
+    const faces = [
+      { dir: new THREE.Vector3(1, 0, 0) },
+      { dir: new THREE.Vector3(-1, 0, 0) },
+      { dir: new THREE.Vector3(0, 1, 0) },
+      { dir: new THREE.Vector3(0, -1, 0) },
+      { dir: new THREE.Vector3(0, 0, 1) },
+      { dir: new THREE.Vector3(0, 0, -1) }
+    ];
+
+    for (const face of faces) {
+      const colors = new Set<number>();
+      const offsets = [-0.5, 0.5];
+      
+      for (const ox of offsets) {
+        for (const oy of offsets) {
+          const rayOrigin = face.dir.clone().multiplyScalar(2);
+          if (face.dir.x !== 0) { rayOrigin.y += ox; rayOrigin.z += oy; }
+          else if (face.dir.y !== 0) { rayOrigin.x += ox; rayOrigin.z += oy; }
+          else { rayOrigin.x += ox; rayOrigin.y += oy; }
+          
+          raycaster.set(rayOrigin, face.dir.clone().negate());
+          const intersects = raycaster.intersectObjects(this.scene.children, true);
+          
+          const sticker = intersects.find(i => i.object instanceof THREE.Mesh && (i.object.geometry as THREE.BufferGeometry).type === 'PlaneGeometry');
+          if (sticker) {
+            colors.add(((sticker.object as THREE.Mesh).material as THREE.MeshStandardMaterial).color.getHex());
+          }
+        }
+      }
+      if (colors.size !== 1) return false;
+    }
+    return true;
+  }
+
+  private async checkSolved() {
+    if (this.isSolved()) {
+        this.solved = true;
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        this.isRunning = false;
+    } else {
+        this.solved = false;
+    }
+  }
+
   private async snapLayer() {
     const targetAngle = Math.round(this.currentDragAngle / (Math.PI / 2)) * (Math.PI / 2);
     const startAngle = this.currentDragAngle;
@@ -385,7 +440,12 @@ export class CubeGame extends LitElement {
             this.scene.remove(this.dragPivot);
             this.isLayerDragging = false;
             this.currentDragAngle = 0;
-            if (!this.isRunning && !this.scrambling && targetAngle !== 0) this.startTimer();
+            if (!this.scrambling && targetAngle !== 0) {
+              const solved = this.isSolved();
+              if (!this.isRunning && !solved) this.startTimer();
+              else if (solved) this.checkSolved();
+              else this.solved = false;
+            }
         }
     };
     requestAnimationFrame(animate);
@@ -422,7 +482,12 @@ export class CubeGame extends LitElement {
     layerCubies.forEach(c => this.scene.attach(c));
     this.scene.remove(pivot);
     this.isLayerDragging = false;
-    if (!this.isRunning && !this.scrambling) this.startTimer();
+    if (!this.scrambling) {
+      const solved = this.isSolved();
+      if (!this.isRunning && !solved) this.startTimer();
+      else if (solved) this.checkSolved();
+      else this.solved = false;
+    }
   }
 
   private getScreenPos(pos: THREE.Vector3): THREE.Vector2 {
@@ -433,6 +498,7 @@ export class CubeGame extends LitElement {
   private async scramble() {
     if (this.scrambling || this.isLayerDragging) return;
     this.scrambling = true;
+    this.solved = false;
     this.resetTimer();
     const axes: ('x' | 'y' | 'z')[] = ['x', 'y', 'z'];
     for (let i = 0; i < 10; i++) {
@@ -454,7 +520,7 @@ export class CubeGame extends LitElement {
   }
 
   private togglePause() {
-    if (this.scrambling || (this.time === 0 && !this.isRunning)) return;
+    if (this.scrambling || (this.time === 0 && !this.isRunning) || this.solved) return;
     
     if (this.isRunning) {
         if (this.timerInterval) clearInterval(this.timerInterval);
@@ -466,7 +532,7 @@ export class CubeGame extends LitElement {
   }
 
   private startTimer() {
-    if (this.isRunning) return;
+    if (this.isRunning || this.solved) return;
     this.isRunning = true;
     this.timerInterval = window.setInterval(() => this.time += 100, 100);
   }
@@ -480,27 +546,29 @@ export class CubeGame extends LitElement {
   private async resetCube() {
     if (this.scrambling || this.isLayerDragging) return;
     this.resetTimer();
+    this.solved = false;
     
-    // Reset positions and rotations of all cubies
     this.cubies.forEach((cubie, index) => {
-        // Calculate original coordinates (0-1 range)
         const z = index % 2;
         const y = Math.floor(index / 2) % 2;
         const x = Math.floor(index / 4);
-        
         cubie.position.set(x - 0.5, y - 0.5, z - 0.5);
         cubie.quaternion.set(0, 0, 0, 1);
     });
   }
 
   render() {
-    const isPaused = this.time > 0 && !this.isRunning;
+    const isPaused = this.time > 0 && !this.isRunning && !this.solved;
 
     return html`
       <div id="canvas-container" tabindex="0"></div>
       
       <div class="ui">
-        <div class="timer">${(this.time / 1000).toFixed(1)}s ${isPaused ? '(PAUSED)' : ''}</div>
+        <div class="timer">
+          ${(this.time / 1000).toFixed(1)}s 
+          ${isPaused ? '(PAUSED)' : ''} 
+          ${this.solved ? '(SOLVED!)' : ''}
+        </div>
       </div>
 
       ${isPaused ? html`
@@ -508,6 +576,17 @@ export class CubeGame extends LitElement {
           <div class="menu-content">
             <h2 style="color: white; font-size: 48px;">PAUSED</h2>
             <button class="close-menu" @click=${() => this.togglePause()}>RESUME</button>
+          </div>
+        </div>
+      ` : ''}
+
+      ${this.solved ? html`
+        <div class="menu-overlay solved-overlay">
+          <div class="menu-content">
+            <h2 style="color: #4ade80; font-size: 48px;">SOLVED!</h2>
+            <p style="font-size: 24px; margin-bottom: 20px;">Time: ${(this.time / 1000).toFixed(1)}s</p>
+            <button class="close-menu" style="background: #4ade80" @click=${() => this.scramble()}>SCRAMBLE AGAIN</button>
+            <button class="close-menu" style="margin-top: 10px;" @click=${() => this.solved = false}>DISMISS</button>
           </div>
         </div>
       ` : ''}
@@ -545,8 +624,8 @@ export class CubeGame extends LitElement {
       ` : ''}
 
       <div class="controls">
-        <button @click=${() => this.scramble()}>SCRAMBLE</button>
-        <button @click=${() => this.togglePause()} ?disabled=${this.time === 0}>
+        <button @click=${() => this.scramble()} ?disabled=${this.scrambling}>SCRAMBLE</button>
+        <button @click=${() => this.togglePause()} ?disabled=${this.time === 0 || this.solved}>
           ${this.isRunning ? 'PAUSE' : 'RESUME'}
         </button>
         <button @click=${() => this.resetCube()}>NEW CUBE</button>
