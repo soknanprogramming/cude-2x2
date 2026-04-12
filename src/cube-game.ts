@@ -214,6 +214,9 @@ export class CubeGame extends LitElement {
 
     // Right Hand - Game Shortcuts
     if (e.code === 'Space') { e.preventDefault(); this.scramble(); }
+    if (key === 'n') this.resetCube();
+    if (key === 'p') this.togglePause();
+    if (key === 'g') this.solved = false;
     if (key === 'backspace' || key === 'delete') this.resetTimer();
     if (key === 'h') this.showMenu = !this.showMenu;
     if (key === 'escape') this.showMenu = false;
@@ -608,9 +611,11 @@ export class CubeGame extends LitElement {
               <div class="instruction-section">
                 <h3>Right Hand (Shortcuts)</h3>
                 <div class="key-map"><span>Scramble</span> <b>SPACE</b></div>
-                <div class="key-map"><span>Reset</span> <b>DEL / BKSP</b></div>
+                <div class="key-map"><span>New Cube</span> <b>N</b></div>
+                <div class="key-map"><span>Pause/Resume</span> <b>P</b></div>
+                <div class="key-map"><span>Reset Timer</span> <b>DEL</b></div>
+                <div class="key-map"><span>Dismiss Solved</span> <b>G</b></div>
                 <div class="key-map"><span>Toggle Help</span> <b>H</b></div>
-                <div class="key-map"><span>Orbit View</span> <b>DRAG BG</b></div>
               </div>
             </div>
 
